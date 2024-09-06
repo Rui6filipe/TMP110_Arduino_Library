@@ -30,9 +30,9 @@ class TMP110{
 
         bool continuousConversion(); // Switches to continuous conversion
 
-        bool setHighTemp(int16_t high); // Sets the alarm high temperature limit
+        bool setHighTemp(float high); // Sets the alarm high temperature limit
 
-        bool setLowTemp(int16_t low); // Sets the alarm low temperature limit
+        bool setLowTemp(float low); // Sets the alarm low temperature limit
         
         // Enables or disables Extended mode
         // 0 - Disabled (temperature 12bits)
@@ -63,9 +63,10 @@ class TMP110{
         // Sets Alert mode
         // 0 - Comparator mode
         // 1 - Alert mode
-        bool setAlarmMode(uint8_t mode);  
+        bool setAlertMode(uint8_t mode);  
 
-        bool checkAlert(); // Checks the state of the Alert register
+        // Checks the state of the Alert register
+        bool checkAlert(); 
 
         // Returns the cause of the Alert
         // 0 - Too low temperature
@@ -77,9 +78,11 @@ class TMP110{
 
         TwoWire *_i2cPort; // I2C communication port
 
-        int _address; // Address of Temperature sensor
+        int _address; // Address of TMP110
 
-        int16_t readRegister(); // Reads temperature register
+        int16_t readRegister(uint8_t registerAddress); // Reads a register
+
+        bool writeRegister(uint8_t registerAddress); // Writes to a register
 
 };
 

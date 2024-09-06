@@ -6,6 +6,8 @@
 #define THIGH_LIMIT 0x03
 #define RESOLUTION 0.0625
 
+const uint8_t RESET = 0x06;
+
 bool TMP110::begin(uint8_t Address, TwoWire &wirePort = Wire){
 
     _i2cPort = WirePort // Saves I2C Port
@@ -161,19 +163,20 @@ bool TMP110::setExtendedMode(uint8_t mode){
 
 bool TMP110::setHighTemp(float high){
 
+    // Read high temperature limit into 8-bit variables
     int16_t limit = high/RESOLUTION;
     uint8_t limit_msb = (limit & 0xFF00) >> 8;
     uint8_t limit_lsb = limit & 0xFF;
 
-    // Read the configuration Temperature High Limit and extract msb and lsb
+    // Read the configuration register and extract reserved bits
     uint16_t config = readRegister(THIGH_LIMIT);
-    uint8_t msb = (config >> 8) & 0xFF;
-    uint8_t lsb = config & 0xFF;  
+    uint8_t lsb = config & 0x0F;  
 
-    msb &= 0x00; // Clear msb
-    msb |= limit_msb; // Set it to the desired
-    lsb &= 0xF8; // Clear bits in lsb
-    lsb |= (limit_lsb << 3); // Set them to the desired
+    // Sets bytes to the desired - carefull because the register takes 12bits for the result and 4 for reserved bits
+    uint8_t msb = (limit_msb << 4) | (limit_lsb >> 4); 
+    lsb |= (limit_lsb << 4); 
+
+    // Missing Extended Mode feature!!!!!!!!!!!!!!!!!!!!!!!!
 
     _i2cPort->beginTransmission(_address);
     _i2cPort->write(THIGH_LIMIT);
@@ -181,16 +184,66 @@ bool TMP110::setHighTemp(float high){
     _i2cPort->write(lsb);
     uint8_t error = _i2cPort->endTransmission();
 
-
-
+    if (error!= 0){
+        return false;
+    } 
+    return true;  
 }
 
 
 bool TMP110::setLowTemp(float low){
 
+    // Read low temperature limit into 8-bit variables
+    int16_t limit = low/RESOLUTION;
+    uint8_t limit_msb = (limit & 0xFF00) >> 8;
+    uint8_t limit_lsb = limit & 0xFF;
+
+    // Read the configuration register and extract reserved bits
+    uint16_t config = readRegister(TLOW_LIMIT);
+    uint8_t lsb = config & 0x0F;  
+
+    // Sets bytes to the desired - carefull because the register takes 12bits for the result and 4 for reserved bits
+    uint8_t msb = (limit_msb << 4) | (limit_lsb >> 4); 
+    lsb |= (limit_lsb << 4); 
+
+    // Missing Extended Mode feature!!!!!!!!!!!!!!!!!!!!!!!!
+
+    _i2cPort->beginTransmission(_address);
+    _i2cPort->write(TLOW_LIMIT);
+    _i2cPort->write(msb);
+    _i2cPort->write(lsb);
+    uint8_t error = _i2cPort->endTransmission();
+
+    if (error!= 0){
+        return false;
+    } 
+    return true;  
+}
+
+
+bool TMP110::reset(){
+
+    _i2cPort->beginTransmission(_address);
+    _i2cPort->write(TEMP_RESULT); // Transmit general call address (which is the same as the temperature register address)
+    _i2cPort->write(RESET); // Transmit reset code
+    uint8_t error = _i2cPort->endTransmission();
 
 }
 
+bool TMP110::checkAlert(){
+
+    uint16_t config = readRegister(CONFIGURATION); // Read config register
+    bool alertFlag = (config & 0x20) != 0; // Check alert bit
+
+    return alertFlag   
+}
+
+// Returns the cause of the Alert
+// 0 - Too low temperature
+// 1 - Too high temperature
+bool TMP110::alertCause(){
+
+}
 
 
 
