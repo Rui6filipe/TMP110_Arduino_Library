@@ -5,13 +5,12 @@
 #define TLOW_LIMIT 0x02
 #define THIGH_LIMIT 0x03
 #define RESOLUTION 0.0625
-
-const uint8_t RESET = 0x06;
+#define RESET 0x06
+#define ALERT_CAUSE 0x19
 
 bool TMP110::begin(uint8_t Address, TwoWire &wirePort = Wire){
 
     _i2cPort = WirePort // Saves I2C Port
-
     _address = (Address > 3) ? (Address + 0x40) : (Address + 0x44); // Saves target adress
 
     // Test if I2C device is online
@@ -36,6 +35,11 @@ bool TMP110::readRegister(uint8_t registerAddress){
     // Return register value
     uint16_t byte = (msb << 8) | lsb; 
     return byte
+}
+
+bool TMP110::writeRegister(uint8_t registerAddress){
+    
+
 }
 
 
@@ -230,6 +234,7 @@ bool TMP110::reset(){
 
 }
 
+// Changes with polarity bit!!!!!!!!
 bool TMP110::checkAlert(){
 
     uint16_t config = readRegister(CONFIGURATION); // Read config register
@@ -238,10 +243,17 @@ bool TMP110::checkAlert(){
     return alertFlag   
 }
 
-// Returns the cause of the Alert
-// 0 - Too low temperature
-// 1 - Too high temperature
+
+// Changes with polarity bit!!!!!!!!!!!
 bool TMP110::alertCause(){
+
+    _i2cPort->beginTransmission(_address);
+    _i2cPort->write(ALERT_CAUSE); 
+    uint8_t alert = _i2cPort->read();
+
+    bool alertBit = (alert & 0x01) != 0;
+
+    return alertBit
 
 }
 
