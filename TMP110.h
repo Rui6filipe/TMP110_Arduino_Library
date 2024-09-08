@@ -2,7 +2,6 @@
 #define TMP110_h
 
 #include <stdint.h>
-#include <Arduino.h>
 #include <Wire.h>
 
 
@@ -21,6 +20,8 @@ class TMP110{
         6 - TMP110D2 
         7 - TMP110D3
         Sets the I2C bus (Wire by default)  
+        True - no error
+        False - error
         */
         bool begin(uint8_t Address, TwoWire &wirePort = Wire); 
         
@@ -30,9 +31,15 @@ class TMP110{
 
         bool continuousConversion(); // Switches to continuous conversion
 
-        bool setHighTemp(float high); // Sets the alarm high temperature limit
+        // Sets the alarm high temperature limit
+        // True - no error
+        // False - error
+        bool setHighTemp(float high); 
 
-        bool setLowTemp(float low); // Sets the alarm low temperature limit
+        // Sets the alarm low temperature limit
+        // True - no error
+        // False - error
+        bool setLowTemp(float low); 
         
         // Enables or disables Extended mode
         // 0 - Disabled (temperature 12bits)
@@ -46,7 +53,10 @@ class TMP110{
         // 3 - 8Hz
         bool setConversionRate(uint8_t rate); 
 
-        bool reset(); // Resets internal registers
+        // Resets internal registers
+        // True - no error
+        // False - error
+        bool reset(); 
 
         // Number of consecutive conversions for which the Alert condition exists before Alert
         // 0 - 1 fault
@@ -66,12 +76,15 @@ class TMP110{
         bool setAlertMode(uint8_t mode);  
 
         // Checks the state of the Alert register
+        // True - no error
+        // False - error
         bool checkAlert(); 
 
         // Returns the cause of the Alert
         // 0 - Too low temperature
         // 1 - Too high temperature
-        bool alertCause(); 
+        // 255 - error
+        uint8_t alertCause(); 
 
         
     private:
@@ -82,7 +95,7 @@ class TMP110{
 
         int16_t readRegister(uint8_t registerAddress); // Reads a register
 
-        bool writeRegister(uint8_t registerAddress); // Writes to a register
+        uint8_t writeRegister(uint8_t registerAddress); // Writes to a register
 
 };
 
