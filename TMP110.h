@@ -52,10 +52,10 @@ class TMP110{
         // False - error
         bool setLowTemp(float low); 
         
-        // Enables or disables Extended mode
-        // 0 - Disabled (temperature 12bits)
-        // 1 - Enabled (temperature 13bits)
-        bool setExtendedMode(uint8_t mode); 
+        // Enables or disables Extended mode. Needs to take in new high and low temperature limits
+        // 0 - Disable (temperature 12bits)
+        // 1 - Enable (temperature 13bits)
+        bool setExtendedMode(uint8_t mode, float high, float low); 
 
         // Changes conversion rate
         // 0 - 0.25Hz

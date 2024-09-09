@@ -130,7 +130,7 @@ bool TMP110::setAlertMode(uint8_t mode){
 }
 
 
-bool TMP110::setExtendedMode(uint8_t mode){
+bool TMP110::setExtendedMode(uint8_t mode, float high, float low){
 
     uint16_t config = readRegister(CONFIGURATION); // Read the configuration register
 
@@ -139,22 +139,33 @@ bool TMP110::setExtendedMode(uint8_t mode){
 
     uint8_t error = writeRegister(CONFIGURATION, config); // Write to config register
 
-    if (error!= 0 || mode < 0 || mode > 1){
+    // Got to update the value of the limit registers
+    bool high_error = setHighTemp(high);
+    bool low_error = setLowTemp(low);
+
+    if (error!= 0 || mode < 0 || mode > 1 || high_error == 0 || low_error == 0){
         return false;
     } 
     return true;    
     
-    // Stuff to change other registers is missing!!!!!!!!!!!!!
 } 
 
 
-bool TMP110::setHighTemp(float high){ // Missing Extended Mode feature!!!!!!!!!!!!!!!!!!!!!
+bool TMP110::setHighTemp(float high){ 
+
+    bool mode = (readRegister(CONFIGURATION) & 0x10) != 0; // In normal mode, mode var is False
 
     int16_t limit = high/RESOLUTION; // Read high temperature limit 
     uint16_t config = readRegister(THIGH_LIMIT); // Read the HighTemp register
 
-    config &= 0x000F; // Clear temperature bits
-    config |= (limit << 4); // Sets them to the desired
+    if (mode==0){ // 12 bit mode
+        config &= 0x000F; // Clear temperature bits
+        config |= (limit << 4); // Sets them to the desired
+    } 
+    else{ // 13 bit mode
+        config &= 0x0007; // Clear temperature bits
+        config |= (limit << 3); // Sets them to the desired
+    }
 
     uint8_t error = writeRegister(THIGH_LIMIT, config); // Write to HighTemp register
 
@@ -165,15 +176,23 @@ bool TMP110::setHighTemp(float high){ // Missing Extended Mode feature!!!!!!!!!!
 }
 
 
-bool TMP110::setLowTemp(float low){ // Missing Extended Mode feature!!!!!!!!!!!!!!!!!!!
+bool TMP110::setLowTemp(float low){
 
-    int16_t limit = low/RESOLUTION; // Read low temperature limit 
-    uint16_t config = readRegister(TLOW_LIMIT); // Read the LowTemp register 
+    bool mode = (readRegister(CONFIGURATION) & 0x10) != 0; // In normal mode, mode var is False
 
-    config &= 0x000F; // Clear temperature bits
-    config |= (limit << 4); // Sets them to the desired
+    int16_t limit = low/RESOLUTION; // Read high temperature limit 
+    uint16_t config = readRegister(TLOW_LIMIT); // Read the HighTemp register
 
-    uint8_t error = writeRegister(TLOW_LIMIT, config); // Write to LowTemp register
+    if (mode==0){ // 12 bit mode
+        config &= 0x000F; // Clear temperature bits
+        config |= (limit << 4); // Sets them to the desired
+    } 
+    else{ // 13 bit mode
+        config &= 0x0007; // Clear temperature bits
+        config |= (limit << 3); // Sets them to the desired
+    }
+
+    uint8_t error = writeRegister(TLOW_LIMIT, config); // Write to HighTemp register
 
     if (error!= 0){
         return false;
@@ -246,7 +265,7 @@ bool TMP110::shutdown(){
 
 bool TMP110::oneShot(){
 
-    shutdown(); // Swhitch to shutdown mode
+    bool shut = shutdown(); // Swhitch to shutdown mode
 
     uint16_t config = readRegister(CONFIGURATION); // Read the configuration register
 
@@ -254,7 +273,7 @@ bool TMP110::oneShot(){
 
     uint8_t error = writeRegister(CONFIGURATION, config); // Write to config register
 
-    if (error!= 0){
+    if (error!= 0 || shut == 0){
         return false;
     } 
     return true;
@@ -276,23 +295,34 @@ bool TMP110::continuousConversion(){
 }
 
 
-float TMP110::readTemperature(){ // Missing extended mode feature!!!!!!
+float TMP110::readTemperature(){
 
-    uint16_t temp = (readRegister(TEMP_RESULT) >> 4); // Read temperature bits
+    bool mode = (readRegister(CONFIGURATION) & 0x10) != 0; // In normal mode, mode var is False
+
     float tempC = 0;
 
-    if ((temp & 0x800) == 0) { 
-        tempC = temp * RESOLUTION; // If temp is positive multiply by resolution
-    } else{
-        temp = (~temp + 1) & 0xFFF; // If temp is negative do 2's complement, clear the 4 upper bits
-        tempC = - temp * RESOLUTION; // Multiply by resolution and put negative sign
+    if (mode == 0){ // 12 bit mode
+
+        uint16_t temp = (readRegister(TEMP_RESULT) >> 4); // Read temperature bits
+        
+        if ((temp & 0x800) == 0) { 
+            tempC = temp * RESOLUTION; // If temp is positive multiply by resolution
+        } else{
+            temp = (~temp + 1) & 0xFFF; // If temp is negative do 2's complement, clear the 4 upper bits
+            tempC = - temp * RESOLUTION; // Multiply by resolution and put negative sign
+        }
+    } 
+    else{ // 13 bit mode
+
+        uint16_t temp = (readRegister(TEMP_RESULT) >> 3); // Read temperature bits
+        
+        if ((temp & 0x1000) == 0) { 
+            tempC = temp * RESOLUTION; // If temp is positive multiply by resolution
+        } else{
+            temp = (~temp + 1) & 0x1FFF; // If temp is negative do 2's complement, clear the 3 upper bits
+            tempC = - temp * RESOLUTION; // Multiply by resolution and put negative sign
+        }
     }
     
     return tempC;
 }
-
-
-
-
-
-
