@@ -1,11 +1,10 @@
 # TMP110 Arduino Library
 
-Arduino library for the Texas Instruments precision I2C temperature sensor TMP110
+This Arduino library provides support for the Texas Instruments TMP110 precision I2C temperature sensor.
 
-# Contents
+## Contents
 
-TMP110.h - Header file for the library
-TMP110.cpp - Implementation file for the library
-keywords.txt - Keywords from this library that will be highlighted in the Arduino IDE
-library.properties - Library properties for the Arduino package manager
-
+- **`TMP110.h`**: Header file for the library.
+- **`TMP110.cpp`**: Implementation file for the library.
+- **`keywords.txt`**: Contains keywords from this library that are highlighted in the Arduino IDE.
+- **`library.properties`**: Library properties for the Arduino package manager.
