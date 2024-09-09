@@ -19,7 +19,7 @@ bool TMP110::begin(uint8_t Address, TwoWire &wirePort = Wire){
     _i2cPort->beginTransmission(_address); 
     uint8_t error = _i2cPort->endTransmission();
 
-    // If I2C did not work or the adress specified is wrong trow an error
+    // If I2C did not work or the adress specified is wrong return false
     if (error != 0 || Address < 0 || Address > 7){
         return false;
     } 
@@ -53,6 +53,16 @@ uint8_t TMP110::writeRegister(uint8_t registerAddress, uint16_t byte){
     uint8_t error = _i2cPort->endTransmission();
 
     return error
+}
+
+
+bool TMP110::checkPolarityBit(){
+
+    uint16_t config = readRegister(CONFIGURATION); // Read the configuration register
+       
+    bool polarity = (config & 0x400) != 0; // Check polarity bit
+
+    return polarity
 }
 
 
@@ -186,17 +196,20 @@ bool TMP110::reset(){
 }
 
 
-// Changes with polarity bit!!!!!!!!
 bool TMP110::checkAlert(){
 
     uint16_t config = readRegister(CONFIGURATION); // Read config register
     bool alertFlag = (config & 0x20) != 0; // Check alert bit
+    bool polarity = checkPolarityBit(); // Check polarity bit
+
+    // If polarity is 0 and alert bit is 1 the alert is not active
+    // If polarity is 1 and alert bit is 1 the alert is active
+    alertFlag *= polarity; 
 
     return alertFlag;  
 }
 
 
-// Changes with polarity bit!!!!!!!!!!!
 uint8_t TMP110::alertCause(){
 
     _i2cPort->beginTransmission(_address);
@@ -204,10 +217,11 @@ uint8_t TMP110::alertCause(){
     _i2cPort->endTransmission(false);
 
     _i2cPort->requestFrom(_address, (uint8_t)1); // Request 1 byte of data
-
     if (_i2cPort->available()) { 
         uint8_t alert = _i2cPort->read(); // Read the byte from the register
-        uint8_t alertBit = (alert & 0x01) != 0; // Check alert bit
+        bool alertBit = (alert & 0x01) != 0; // Check alert bit
+        bool polarity = checkPolarityBit(); // Check polarity bit
+        alertBit = (polarity ^ alertBit) == 0; // XOR
         return alertBit;
     } else{
         return -1; // If data not available return error code
@@ -215,8 +229,70 @@ uint8_t TMP110::alertCause(){
 }
 
 
-float TMP110::readTemperature(){
+bool TMP110::shutdown(){
+        
+    uint16_t config = readRegister(CONFIGURATION); // Read the configuration register
 
+    config |= 0x100; // Set shutdown bit to 1
 
+    uint8_t error = writeRegister(CONFIGURATION, config); // Write to config register
 
+    if (error!= 0){
+        return false;
+    } 
+    return true;
 }
+
+
+bool TMP110::oneShot(){
+
+    shutdown(); // Swhitch to shutdown mode
+
+    uint16_t config = readRegister(CONFIGURATION); // Read the configuration register
+
+    config |= 0x8000; // Set one shot bit to 1
+
+    uint8_t error = writeRegister(CONFIGURATION, config); // Write to config register
+
+    if (error!= 0){
+        return false;
+    } 
+    return true;
+}
+
+
+bool TMP110::continuousConversion(){
+
+    uint16_t config = readRegister(CONFIGURATION); // Read the configuration register
+
+    config &= 0xFEFF; // Set shutdown bit to 0
+
+    uint8_t error = writeRegister(CONFIGURATION, config); // Write to config register
+
+    if (error!= 0){
+        return false;
+    } 
+    return true;
+}
+
+
+float TMP110::readTemperature(){ // Missing extended mode feature!!!!!!
+
+    uint16_t temp = (readRegister(TEMP_RESULT) >> 4); // Read temperature bits
+    float tempC = 0;
+
+    if ((temp & 0x800) == 0) { 
+        tempC = temp * RESOLUTION; // If temp is positive multiply by resolution
+    } else{
+        temp = (~temp + 1) & 0xFFF; // If temp is negative do 2's complement, clear the 4 upper bits
+        tempC = - temp * RESOLUTION; // Multiply by resolution and put negative sign
+    }
+    
+    return tempC;
+}
+
+
+
+
+
+

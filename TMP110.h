@@ -25,18 +25,29 @@ class TMP110{
         */
         bool begin(uint8_t Address, TwoWire &wirePort = Wire); 
         
-        float readTemperature(); // Reads temperature 
+        float readTemperature(); // Reads temperature in C
 
-        bool oneShot(); // Performs a one shot conversion
+        // Performs a one shot conversion. Automatically switches to shutdown mode
+        // True - no error
+        // False - error
+        bool oneShot(); 
 
-        bool continuousConversion(); // Switches to continuous conversion
+        // Switches to shutdown mode
+        // True - no error
+        // False - error
+        bool shutdown(); 
 
-        // Sets the alarm high temperature limit
+        // Switches to continuous conversion
+        // True - no error
+        // False - error
+        bool continuousConversion();
+
+        // Sets the alarm high temperature limit in C
         // True - no error
         // False - error
         bool setHighTemp(float high); 
 
-        // Sets the alarm low temperature limit
+        // Sets the alarm low temperature limit in C
         // True - no error
         // False - error
         bool setLowTemp(float low); 
@@ -75,14 +86,14 @@ class TMP110{
         // 1 - Alert mode
         bool setAlertMode(uint8_t mode);  
 
-        // Checks the state of the Alert register
-        // True - no error
-        // False - error
+        // Checks the state of the Alert flag, teking into account the polarity bit
+        // True - alert active
+        // False - alert not active
         bool checkAlert(); 
 
         // Returns the cause of the Alert
-        // 0 - Too low temperature
-        // 1 - Too high temperature
+        // False - Low Limit
+        // True - High Limit
         // 255 - error
         uint8_t alertCause(); 
 
@@ -96,6 +107,11 @@ class TMP110{
         int16_t readRegister(uint8_t registerAddress); // Reads a register
 
         uint8_t writeRegister(uint8_t registerAddress); // Writes to a register
+
+        // Reads polarity bit
+        // False - 0
+        // True - 1
+        bool checkPolarityBit(); 
 
 };
 
